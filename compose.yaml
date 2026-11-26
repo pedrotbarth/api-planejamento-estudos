@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: planejamento_estudos
+      POSTGRES_USER: estudos
+      POSTGRES_PASSWORD: estudos_local
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "estudos", "-d", "planejamento_estudos"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  postgres_dados:
