@@ -1,0 +1,26 @@
+package br.edu.unisatc.estudos.dto;
+
+import br.edu.unisatc.estudos.entity.StatusAtividade;
+import br.edu.unisatc.estudos.entity.TipoAtividade;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+
+public record AlterarAtividadeRequest(
+        @NotBlank(message = "O título é obrigatório.")
+        @Size(max = 160, message = "O título deve ter até 160 caracteres.")
+        String titulo,
+        @NotNull(message = "Informe o tipo.")
+        TipoAtividade tipo,
+        @NotNull(message = "Informe a data-limite.")
+        LocalDate dataLimite,
+        @NotNull(message = "Informe a disciplina.")
+        @Positive(message = "O identificador deve ser positivo.")
+        Long disciplinaId,
+        @NotNull(message = "Informe o status.")
+        StatusAtividade status
+) {
+}

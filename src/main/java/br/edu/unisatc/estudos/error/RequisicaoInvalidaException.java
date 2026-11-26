@@ -1,0 +1,7 @@
+package br.edu.unisatc.estudos.error;
+
+public class RequisicaoInvalidaException extends RuntimeException {
+    public RequisicaoInvalidaException(String mensagem) {
+        super(mensagem);
+    }
+}

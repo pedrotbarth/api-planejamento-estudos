@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: api-planejamento-estudos
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/planejamento_estudos}
+    username: ${DB_USER:estudos}
+    password: ${DB_PASSWORD:estudos_local}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-numbers-for-enums: true
+
+server:
+  port: ${PORT:8080}
