@@ -14,12 +14,6 @@ import br.edu.unisatc.estudos.dto.AtividadeUpdateRequest;
 import br.edu.unisatc.estudos.dto.PaginaResponse;
 import br.edu.unisatc.estudos.entity.StatusAtividade;
 import org.springframework.data.domain.Pageable;
-import br.edu.unisatc.estudos.repository.AtividadeIdempotenciaRepository;
-import tools.jackson.databind.json.JsonMapper;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 
 @Service
 public class AtividadeService {
@@ -27,74 +21,22 @@ public class AtividadeService {
     private final AtividadeRepository atividadeRepository;
     private final DisciplinaRepository disciplinaRepository;
 
-    private final AtividadeIdempotenciaRepository idempotenciaRepository;
-    private final JsonMapper jsonMapper;
-
     public AtividadeService(
             AtividadeRepository atividadeRepository,
-            DisciplinaRepository disciplinaRepository,
-            AtividadeIdempotenciaRepository idempotenciaRepository,
-            JsonMapper jsonMapper
+            DisciplinaRepository disciplinaRepository
     ) {
         this.atividadeRepository = atividadeRepository;
         this.disciplinaRepository = disciplinaRepository;
-        this.idempotenciaRepository = idempotenciaRepository;
-        this.jsonMapper = jsonMapper;
     }
 
     @Transactional
     public AtividadeResponse criar(AtividadeRequest dados) {
-        return cadastrar(dados, encontrarDisciplina(dados.disciplinaId()));
-    }
-
-    @Transactional
-    public ResultadoCriacao criarComIdempotencia(AtividadeRequest dados, String chave) {
-        if (chave.isBlank() || chave.length() > 128) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Idempotency-Key deve conter de 1 a 128 caracteres.");
-        }
-
         Disciplina disciplina = encontrarDisciplina(dados.disciplinaId());
-        Long estudanteId = disciplina.getEstudante().getId();
-        String payloadHash = calcularHash(dados);
-
-        if (!idempotenciaRepository.reservar(estudanteId, chave, payloadHash)) {
-            var resposta = idempotenciaRepository.buscar(estudanteId, chave);
-
-            if (!resposta.payloadHash().equals(payloadHash)) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT, "A chave já foi usada com dados diferentes.");
-            }
-
-            return new ResultadoCriacao(resposta.statusHttp(), resposta.respostaJson());
-        }
-
-        AtividadeResponse atividade = cadastrar(dados, disciplina);
-        String respostaJson = jsonMapper.writeValueAsString(atividade);
-        int statusHttp = HttpStatus.CREATED.value();
-        idempotenciaRepository.salvarResposta(estudanteId, chave, statusHttp, respostaJson);
-
-        return new ResultadoCriacao(statusHttp, respostaJson);
-    }
-
-    private AtividadeResponse cadastrar(AtividadeRequest dados, Disciplina disciplina) {
         Atividade atividade = new Atividade(
                 dados.titulo().strip(), dados.tipo(), dados.dataLimite(), disciplina
         );
+
         return converter(atividadeRepository.save(atividade));
-    }
-
-    private String calcularHash(AtividadeRequest dados) {
-        try {
-            byte[] json = jsonMapper.writeValueAsBytes(dados);
-            byte[] hash = MessageDigest.getInstance("SHA-256").digest(json);
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException erro) {
-            throw new IllegalStateException("SHA-256 indisponível.", erro);
-        }
-    }
-
-    public record ResultadoCriacao(int statusHttp, String respostaJson) {
     }
 
     @Transactional(readOnly = true)
