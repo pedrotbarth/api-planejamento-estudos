@@ -4,6 +4,10 @@ Projeto final de API REST da **Unisatc**, no tema **Educação e Aprendizado**.
 
 ## Projeto e aplicação
 
+**API publicada:** https://api-planejamento-estudos.onrender.com · **Documentação (Scalar):** https://api-planejamento-estudos.onrender.com/scalar
+
+> O plano gratuito do Render desliga o serviço após alguns minutos sem uso. A primeira requisição pode levar cerca de um minuto para responder.
+
 Estudantes com várias disciplinas recebem informações sobre trabalhos, provas e exercícios em lugares diferentes. Isso dificulta saber quais atividades estão pendentes e quais prazos precisam de atenção primeiro.
 
 A API permite cadastrar estudantes, organizar as disciplinas de cada um e registrar atividades com tipo, data-limite e status. O estudante pode consultar as atividades pendentes de uma disciplina, em ordem de prazo, e marcar uma atividade como concluída.
@@ -22,6 +26,8 @@ A API permite cadastrar estudantes, organizar as disciplinas de cada um e regist
 - Java 21 e Maven Wrapper
 - Spring Boot, Spring Web, Spring Data JPA e Jakarta Validation
 - PostgreSQL 16 e Docker Compose
+- springdoc-openapi com Scalar para a documentação
+- Docker e Render para o deploy
 
 A camada `controller` recebe as requisições HTTP e valida os DTOs de entrada. A camada `service` aplica as regras, verifica os vínculos e transforma os resultados em DTOs de saída. A camada `repository` consulta e grava os dados no PostgreSQL por meio do Spring Data JPA.
 
@@ -110,7 +116,33 @@ O Docker Compose executa o PostgreSQL na porta `5433` do computador. O banco se 
 | `DB_USER` | Usuário do PostgreSQL | `estudos` |
 | `DB_PASSWORD` | Senha do PostgreSQL local | `estudos_local` |
 
-Esses valores correspondem ao banco configurado no `compose.yaml`. Para usar outra instância do PostgreSQL, defina as variáveis no terminal antes de iniciar a aplicação.
+Esses valores correspondem ao banco configurado no `compose.yaml`. Para usar outra instância do PostgreSQL, defina as variáveis no terminal antes de iniciar a aplicação. Também é possível informar `DB_HOST`, `DB_PORT` e `DB_NAME` separadamente no lugar de `DB_URL`.
+
+### Documentação interativa
+
+Com a aplicação rodando, a documentação gerada pelo springdoc fica em:
+
+- Scalar: `http://localhost:8081/scalar`
+- OpenAPI em JSON: `http://localhost:8081/v3/api-docs`
+
+Pelo Scalar dá para ver os DTOs de cada rota e testar as requisições direto no navegador.
+
+## Deploy no Render
+
+O deploy usa o `Dockerfile` e o `render.yaml` da raiz do projeto. O `render.yaml` cria o serviço web e um PostgreSQL gratuito, e repassa os dados de conexão para a aplicação pelas variáveis `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD`. A porta vem da variável `PORT`, definida pelo próprio Render.
+
+Para publicar em outra conta:
+
+1. No painel do Render, clique em **New > Blueprint**.
+2. Conecte este repositório e confirme a criação dos recursos.
+3. Aguarde o build e acesse `https://<nome-do-servico>.onrender.com/scalar`.
+
+Para testar a imagem localmente, com o banco do Docker Compose rodando:
+
+```powershell
+docker build -t api-estudos .
+docker run --rm -p 8081:8081 -e DB_HOST=host.docker.internal api-estudos
+```
 
 ## Endpoints
 
