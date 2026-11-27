@@ -292,4 +292,4 @@ $alterado | curl.exe -i -H "Content-Type: application/json" -H "Idempotency-Key:
 | Reutilização após expirar a chave | O primeiro cadastro retornou ID `5`. Após antecipar a expiração no banco local, a repetição retornou `201` com ID `6`. |
 | Dois POSTs em paralelo com a mesma chave | Dois `201`, ambos com ID `7`. A comparação retornou `Corpos identicos: True` e a consulta SQL confirmou `total = 1`. |
 
-[Issue #2 — Carta-desafio](https://github.com/pedrotbarth/api-planejamento-estudos/issues/2)
+[Issue #2 — Carta-desafio](https://github.com/pedrotbarth/api-planejamento-estudos/issues/2) · [Pull request #5](https://github.com/pedrotbarth/api-planejamento-estudos/pull/5)
