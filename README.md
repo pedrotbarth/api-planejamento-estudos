@@ -15,6 +15,7 @@ A API permite cadastrar estudantes, organizar as disciplinas de cada um e regist
 | Pedro Henrique Teixeira Barth | Desenvolvimento da API REST, incluindo os CRUDs, os DTOs e as camadas controller, service e repository. |
 | Marcelo Vinícius Batista Candido | Testes da API e registro das evidências de paginação, filtros, ordenação e erros HTTP. |
 | João Vitor Goulart Viana | Banco de dados e execução local, incluindo a configuração do PostgreSQL no Docker Compose e a verificação dos relacionamentos. |
+| João Paulo Marques Votri | (função dele no projeto) |
 
 ## Tecnologias
 
