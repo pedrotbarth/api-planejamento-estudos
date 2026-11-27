@@ -21,6 +21,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestHeader;
+
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/atividades")
@@ -33,9 +38,19 @@ public class AtividadeController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public AtividadeResponse criar(@Valid @RequestBody AtividadeRequest dados) {
-        return service.criar(dados);
+    public ResponseEntity<?> criar(
+            @Valid @RequestBody AtividadeRequest dados,
+            @RequestHeader(name = "Idempotency-Key", required = false) String chave
+    ) {
+        if (chave == null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(dados));
+        }
+
+        var resultado = service.criarComIdempotencia(dados, chave);
+
+        return ResponseEntity.status(resultado.statusHttp())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(resultado.respostaJson().getBytes(StandardCharsets.UTF_8));
     }
 
     @GetMapping
