@@ -233,14 +233,62 @@ Os erros tratados retornam `application/problem+json`. O campo `detail` explica 
 
 Os testes locais cobriram os três CRUDs, a persistência no PostgreSQL, os relacionamentos, a paginação, os filtros, a ordenação e as respostas de erro. [Consultar as evidências da E2](docs/evidencias-e2.md).
 
-## Carta-desafio
+## Carta-desafio — Idempotência no cadastro de atividades
 
-**Pendente de recebimento do enunciado.** Esta seção será atualizada na E3.
+**História de usuário.** Como estudante, quero reenviar o cadastro de uma atividade após uma falha de conexão ou um clique duplo, para que ela apareça uma única vez na minha agenda.
 
-| Item | Situação |
+### Endpoint e critérios de aceite
+
+O endpoint `POST /atividades` aceita o cabeçalho opcional `Idempotency-Key`. A API identifica o estudante pela disciplina informada no campo `disciplinaId`.
+
+| Situação | Comportamento |
 | --- | --- |
-| História de usuário | Aguardando a carta-desafio. |
-| Critérios de aceite | A definir a partir do enunciado. |
-| Implementação | Pendente. A funcionalidade será integrada à API existente. |
-| Endpoints novos ou alterados | A definir após a análise da carta. |
-| Issue e pull request | A registrar na E3 para acompanhar a implementação e a integração. |
+| Mesma chave e mesmo payload para o mesmo estudante | Retorna o `201 Created` e o JSON original, com o mesmo ID. |
+| Mesma chave com payload diferente para o mesmo estudante | Retorna `409 Conflict` em `application/problem+json` e preserva a atividade original. |
+| Mesma chave para estudantes diferentes | Cada estudante pode cadastrar sua atividade de forma independente. |
+| Chave expirada | A chave pode ser reutilizada para um novo cadastro. O prazo é de 24 horas a partir do cadastro bem-sucedido. |
+| Requisição sem o cabeçalho | Segue o fluxo normal de cadastro. Cada `POST` válido cria uma atividade. |
+
+### Implementação
+
+A tabela `atividade_idempotencia` no PostgreSQL usa a chave primária `(estudante_id, chave)`. Ela armazena o hash SHA-256 dos dados recebidos, o status HTTP, o JSON original e o horário de expiração.
+
+A API reserva a chave com `INSERT ... ON CONFLICT`. A reserva, a criação da atividade e a gravação da resposta acontecem na mesma transação. Quando duas chamadas usam a mesma chave ao mesmo tempo, uma cria a atividade e a outra reutiliza a resposta registrada.
+
+### Como reproduzir
+
+Com a API em execução, informe o ID de uma disciplina existente em `$disciplinaId` e rode no PowerShell:
+
+```powershell
+$url = "http://localhost:8081/atividades"
+$disciplinaId = 1
+$chave = [guid]::NewGuid().ToString()
+
+$dados = @{
+    titulo = "Prova de idempotencia"
+    tipo = "PROVA"
+    dataLimite = "2026-12-03"
+    disciplinaId = $disciplinaId
+}
+
+$corpo = $dados | ConvertTo-Json -Compress
+$dados.dataLimite = "2026-12-04"
+$alterado = $dados | ConvertTo-Json -Compress
+
+$corpo    | curl.exe -i -H "Content-Type: application/json" -H "Idempotency-Key: $chave" --data-binary '@-' $url
+$corpo    | curl.exe -i -H "Content-Type: application/json" -H "Idempotency-Key: $chave" --data-binary '@-' $url
+$alterado | curl.exe -i -H "Content-Type: application/json" -H "Idempotency-Key: $chave" --data-binary '@-' $url
+```
+
+### Evidências de execução
+
+| Teste | Resultado observado em 27/11/2026 |
+| --- | --- |
+| Dois cadastros com a mesma chave e o mesmo payload | Dois `201` com JSON idêntico e ID `1`. |
+| Mesma chave com a data alterada | `409`. O banco manteve o ID `1` com prazo em `2026-12-03`. |
+| Mesma chave para outro estudante | `201` com ID `2`, vinculado à disciplina do segundo estudante. |
+| Dois cadastros sem chave | Dois `201`, com IDs `3` e `4`. |
+| Reutilização após expirar a chave | O primeiro cadastro retornou ID `5`. Após antecipar a expiração no banco local, a repetição retornou `201` com ID `6`. |
+| Dois POSTs em paralelo com a mesma chave | Dois `201`, ambos com ID `7`. A comparação retornou `Corpos identicos: True` e a consulta SQL confirmou `total = 1`. |
+
+[Issue #2 — Carta-desafio](https://github.com/pedrotbarth/api-planejamento-estudos/issues/2)
